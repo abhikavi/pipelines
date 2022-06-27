@@ -1,0 +1,38 @@
+pipelines:
+custom:
+role-deploy-safety-indicators:
+- variables:
+- name: ApplyOrDestroy
+default: "apply"
+allowed-values:
+- "apply"
+- "destroy"
+- name: DeployAccount
+default: "native-cpt-dev"
+allowed-values:
+- "native-cpt-dev"
+- "native-cpt-prod"
+- step:
+name: api-gateway Deploy
+image: hashicorp/terraform
+runs-on:
+- 'self.hosted'
+- 'linux'
+- 'cpt'
+script:
+- cd deploy/api-gateway
+- terraform init
+- terraform workspace new $DeployAccount || true
+- terraform workspace select $DeployAccount
+- terraform workspace show
+- terraform validate
+# - terraform plan -var-file=input_variables.txt -var="trustedaccount=$TrustAccount"
+- terraform plan -var-file=input_variables.txt
+- |
+if [ "$ApplyOrDestroy" = "apply" ]; then
+terraform apply -var-file=input_variables.txt -auto-approve
+fi
+if [ "$ApplyOrDestroy" = "destroy" ]; then
+terraform destroy -var-file=input_variables.txt -auto-approve
+fi
+
